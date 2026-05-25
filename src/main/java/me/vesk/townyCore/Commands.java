@@ -17,6 +17,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.palmergames.bukkit.towny.TownyAPI;
+
 @CommandAlias("townycore")
 public class Commands extends BaseCommand {
 
@@ -25,6 +27,7 @@ public class Commands extends BaseCommand {
     private final TownsConfig townsConfig;
 
     private TownyAPI apiTowny;
+
 
     public Commands(JavaPlugin plugin, ConfigManager configManager, TownsConfig townsConfig) {
         this.plugin = plugin;
@@ -83,5 +86,23 @@ public class Commands extends BaseCommand {
                 false, true, false));
 
         townsConfig.setLine(apiTowny.getTownName(player)+".level_claim", townLevelClaim + 1);
+    }
+
+    @Subcommand("info")
+    public void writeInfoTown(CommandSender sender) {
+        if (!(sender instanceof Player)) {
+            return;
+        }
+        Player playerSender = (Player) sender;
+
+        ArrayList<String> listMessage = configManager.getTownInfo();
+        for (int i = 0; i < listMessage.size(); i++) {
+            String message = listMessage.get(i);
+            message = message.replace("{townName}", apiTowny.getTownName(playerSender));
+            message = message.replace("{claimLevel}",townsConfig.getInt(apiTowny.getTownName(playerSender)+
+                    ".level_claim").toString());
+            playerSender.sendMessage(message);
+        }
+
     }
 }

@@ -60,6 +60,14 @@ public class ConfigManager {
         return claimPlots;
     }
 
+    public ArrayList<String> getTownInfo() {
+        ArrayList<String> messages = new ArrayList<>();
+        for (String entry : config.getStringList("messages.townInfo")) {
+            messages.add(entry);
+        }
+        return messages;
+    }
+
     public String getNotEnoughResources() {
         return config.getString("messages.notEnoughResources");
     }

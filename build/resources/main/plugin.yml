@@ -1,0 +1,7 @@
+name: TownyCore
+version: '$version'
+
+dependencies: [Towny]
+main: me.vesk.townyCore.TownyCore
+api-version: '1.20'
+load: POSTWORLD
