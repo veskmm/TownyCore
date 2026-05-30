@@ -24,9 +24,12 @@ public class Manager {
         this.configManager = configManager;
     }
 
-    public void writingOffDemand(Player player) {
-        Map<Material, Integer> demandResources = configManager.getDemand();
+    public void writingOffDemand(Player player, Boolean is_claim, Integer level_claim) {
+        Map<Material, Integer> demandResources = configManager.getDemand("demand.resources");
 
+        if (is_claim) {
+            demandResources = configManager.getDemandClaim(level_claim);
+        }
 
         for (Map.Entry<Material, Integer> entry : demandResources.entrySet()) {
 
@@ -52,9 +55,12 @@ public class Manager {
 
     }
 
-    public List<List<Component>> checkDemand(Player player) {
+    public List<List<Component>> checkDemand(Player player, Boolean is_claim, Integer level_claim) {
         ItemStack[] playerResources = player.getInventory().getStorageContents();
-        Map<Material, Integer> demandResources = configManager.getDemand();
+        Map<Material, Integer> demandResources = configManager.getDemand("demand.resources");
+        if (is_claim) {
+            demandResources = configManager.getDemandClaim(level_claim);
+        }
 
         for (int i = 0; i < playerResources.length; i++) {
             if (playerResources[i] == null) {continue;}

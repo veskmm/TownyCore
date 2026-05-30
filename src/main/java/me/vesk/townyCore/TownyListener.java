@@ -42,17 +42,22 @@ public class TownyListener implements Listener {
 
     @EventHandler
     public void onTownPreClaim(PreNewTownEvent event) {
-        List<List<Component>> firthResult = manager.checkDemand(event.getPlayer());
+        List<List<Component>> firthResult = manager.checkDemand(event.getPlayer(),false,0);
 
         List<Component> missingComponents = firthResult.get(0);
         List<Component> missingAmounts = firthResult.get(1);
 
         event.getPlayer().sendMessage("");
         if (missingComponents.isEmpty()) {
-            manager.writingOffDemand(event.getPlayer());
+            manager.writingOffDemand(event.getPlayer(),false,0);
             String filledMessage = configManager.getcreateTown().replace("{newTown}",event.getTownName());
             String coloredMessage = ChatColor.translateAlternateColorCodes('&', filledMessage);
             event.getPlayer().sendMessage(coloredMessage);
+
+            townsConfig.setLine(event.getTownName()+".level_claim",0);
+            townsConfig.setLine(event.getTownName()+".mayor",event.getPlayer().getName());
+            townsConfig.setLine(event.getTownName()+".position_x",event.getTownWorldCoord().getX());
+            townsConfig.setLine(event.getTownName()+".position_z",event.getTownWorldCoord().getZ());
         }
         else {
             event.setCancelMessage("");
@@ -76,14 +81,6 @@ public class TownyListener implements Listener {
             String coloredMessage = ChatColor.translateAlternateColorCodes('&', filledMessage);
             event.getPlayer().sendMessage(coloredMessage);
             event.getPlayer().sendMessage(message);
-
-            //townsConfig.createLine(event.getTownName());
-
-            townsConfig.setLine(event.getTownName()+".level_claim",0);
-            townsConfig.setLine(event.getTownName()+".mayor",event.getPlayer().getName());
-            townsConfig.setLine(event.getTownName()+".position_x",event.getTownWorldCoord().getX());
-            townsConfig.setLine(event.getTownName()+".position_z",event.getTownWorldCoord().getZ());
-
         }
         event.getPlayer().sendMessage("");
     }

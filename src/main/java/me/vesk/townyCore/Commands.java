@@ -8,7 +8,10 @@ import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.event.TownPreClaimEvent;
 import com.palmergames.bukkit.towny.object.WorldCoord;
 import com.palmergames.bukkit.towny.tasks.TownClaim;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -25,14 +28,16 @@ public class Commands extends BaseCommand {
     private final JavaPlugin plugin;
     private final ConfigManager configManager;
     private final TownsConfig townsConfig;
+    private final Manager manager;
 
     private TownyAPI apiTowny;
 
 
-    public Commands(JavaPlugin plugin, ConfigManager configManager, TownsConfig townsConfig) {
+    public Commands(JavaPlugin plugin, ConfigManager configManager, TownsConfig townsConfig, Manager manager) {
         this.plugin = plugin;
         this.configManager = configManager;
         this.townsConfig = townsConfig;
+        this.manager = manager;
 
         apiTowny = TownyAPI.getInstance();
     }
@@ -46,8 +51,38 @@ public class Commands extends BaseCommand {
 
     @Subcommand("claim")
     public void claimNewPlot(Player player) {
-
         int townLevelClaim = townsConfig.getInt(apiTowny.getTownName(player)+".level_claim");
+
+        List<List<Component>> firthResult = manager.checkDemand(player,true,townLevelClaim+1);
+
+        List<Component> missingComponents = firthResult.get(0);
+        List<Component> missingAmounts = firthResult.get(1);
+
+        if (!missingComponents.isEmpty()) {
+            Component message = Component.empty();
+
+            int i = 0;
+            for (Component mC : missingComponents) {
+                message = message.append(Component.newline())
+                        .append(Component.text("- "))
+                        .append(mC)
+                        .append(Component.text(" "))
+                        .append(missingAmounts.get(i).color(NamedTextColor.GOLD))
+                        .append(Component.text(" штук").color(NamedTextColor.GOLD));
+                i++;
+            }
+
+            String rawMessage = configManager.getNotEnoughResources();
+            String filledMessage = rawMessage.replace("{missingResources}", "");
+
+            String coloredMessage = ChatColor.translateAlternateColorCodes('&', filledMessage);
+            player.sendMessage(coloredMessage);
+            player.sendMessage(message);
+
+            return;
+        }
+
+        manager.writingOffDemand(player,true,townLevelClaim+1);
         ArrayList<String> claimPlotsLevel = configManager.getClaimPlots(String.valueOf(townLevelClaim+1));
 
         List<WorldCoord> selection = new ArrayList<>();

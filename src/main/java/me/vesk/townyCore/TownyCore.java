@@ -16,12 +16,13 @@ public final class TownyCore extends JavaPlugin {
         this.configManager = new ConfigManager(this);
         this.townsConfig = new TownsConfig(this);
 
+        this.manager = new Manager(this,configManager);
+
         commandManager = new PaperCommandManager(this);
-        commandManager.registerCommand(new Commands(this, configManager,townsConfig));
+        commandManager.registerCommand(new Commands(this, configManager,townsConfig,manager));
 
         saveDefaultConfig();
 
-        this.manager = new Manager(this,configManager);
         getServer().getPluginManager().registerEvents(new TownyListener(this,manager,configManager,townsConfig), this);
     }
 

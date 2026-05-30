@@ -24,9 +24,13 @@ public class ConfigManager {
         config = plugin.getConfig();
     }
 
-    public Map<Material, Integer> getDemand() {
+    public Map<Material, Integer> getDemandClaim(Integer claim_level) {
+        return getDemand("demand.claim_level."+claim_level.toString());
+    }
+
+    public Map<Material, Integer> getDemand(String path) {
         Map<Material, Integer> resources = new HashMap<>();
-        for (String entry : config.getStringList("demand.resources")) {
+        for (String entry : config.getStringList(path)) {
             String[] parts = entry.split(" ");
             if (parts.length != 2) {
                 plugin.getLogger().warning("Неверный формат ресурса: " + entry);
