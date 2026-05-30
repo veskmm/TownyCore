@@ -1,2 +1,4 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Игнорировать HTML, CSS и JS файлы для статистики
+*.html linguist-detectable=false
+*.css linguist-detectable=false
+*.js linguist-detectable=false
