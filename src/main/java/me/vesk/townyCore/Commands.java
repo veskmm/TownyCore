@@ -53,6 +53,11 @@ public class Commands extends BaseCommand {
     public void claimNewPlot(Player player) {
         int townLevelClaim = townsConfig.getInt(apiTowny.getTownName(player)+".level_claim");
 
+        if (townLevelClaim+1 >= configManager.getLevelsClaim()) {
+            player.sendMessage(configManager.getMaxClaimLevel());
+            return;
+        }
+
         List<List<Component>> firthResult = manager.checkDemand(player,true,townLevelClaim+1);
 
         List<Component> missingComponents = firthResult.get(0);

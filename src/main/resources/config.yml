@@ -10,6 +10,7 @@ messages:
 
   notEnoughResources: "&6&lНе хватает ресурсов: &r{missingResources}"
   notEnoughMoney: "&6&lНе хватает денег! &7Нужно ещё &6{missingMoney}"
+  maxClaimLevel: "У вас макс. уровень привата!"
 
   townInfo:
     - " "
@@ -31,6 +32,8 @@ demand:
     3:
       - "OAK_PLANKS 32"
       - "STONE 64"
+
+claim_levels: 3
 
 claim_level:
   1:

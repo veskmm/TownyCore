@@ -79,4 +79,12 @@ public class ConfigManager {
     public String getcreateTown() {
         return config.getString("messages.createTown");
     }
+
+    public Integer getLevelsClaim() {
+        return config.getInt("claim_levels");
+    }
+
+    public String getMaxClaimLevel() {
+        return config.getString("messages.maxClaimLevel");
+    }
 }

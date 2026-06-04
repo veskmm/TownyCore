@@ -21,7 +21,6 @@ public class TownsConfig {
         this.plugin = plugin;
         loadConfig();
     }
-
     private void loadConfig() {
         configFile = new File(plugin.getDataFolder(), "towns_config.yml");
 

@@ -2,6 +2,7 @@ package me.vesk.townyCore;
 
 import com.palmergames.bukkit.towny.Towny;
 import com.palmergames.bukkit.towny.TownyAPI;
+import com.palmergames.bukkit.towny.event.DeleteTownEvent;
 import com.palmergames.bukkit.towny.event.PreNewTownEvent;
 
 import com.palmergames.bukkit.towny.event.TownPreClaimEvent;
@@ -85,4 +86,9 @@ public class TownyListener implements Listener {
         event.getPlayer().sendMessage("");
     }
 
+
+    @EventHandler
+    public void deletedTown(DeleteTownEvent event) {
+        townsConfig.setLine(event.getTownName(), null);
+    }
 }

@@ -35,6 +35,11 @@ public class Manager {
 
             for (int j = 0; j < player.getInventory().getSize(); j++) {
                 ItemStack item = player.getInventory().getItem(j);
+
+                if (item == null || item.getType() == Material.AIR) {
+                    continue;  // пустой слот — пропускаем
+                }
+
                 if (item.getType() != entry.getKey()) {continue;}
 
                 int toRemove = entry.getValue();
