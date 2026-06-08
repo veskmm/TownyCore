@@ -1,8 +1,7 @@
 package me.vesk.townyCore;
 
 import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.Subcommand;
+import co.aikar.commands.annotation.*;
 import com.palmergames.bukkit.towny.Towny;
 import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.event.TownPreClaimEvent;
@@ -29,6 +28,7 @@ public class Commands extends BaseCommand {
     private final ConfigManager configManager;
     private final TownsConfig townsConfig;
     private final Manager manager;
+
 
     private TownyAPI apiTowny;
 
@@ -144,5 +144,37 @@ public class Commands extends BaseCommand {
             playerSender.sendMessage(message);
         }
 
+    }
+
+    @Subcommand("builds add townybuild")
+    //@CommandPermission("townycore.builds.add")
+    public void onTownyBuildAdd(
+            CommandSender sender,
+            String name,
+            Location cord1,
+            Location cord2
+    )
+    {
+        if (!(sender instanceof Player)) return;
+        Player playerSender = (Player) sender;
+
+        boolean result =  manager.addBuild(cord1,cord2,playerSender,name);
+
+        if (result) {
+            playerSender.sendMessage("Здание успешно добавлено");
+        }
+    }
+
+    @Subcommand("builds make townybuild")
+    //@CommandPermission("townycore.builds.add")
+    public void onTownyBuildMake(
+            CommandSender sender,
+            String name
+    )
+    {
+        if (!(sender instanceof Player)) return;
+        Player PlayerSender = (Player) sender;
+
+        manager.makeBuild(PlayerSender.getLocation(),PlayerSender,name);
     }
 }

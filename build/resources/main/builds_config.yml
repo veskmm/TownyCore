@@ -1,0 +1,7 @@
+test:
+  name: ""
+  resources:
+    - STONE 10
+  blocks:
+    -
+  world:

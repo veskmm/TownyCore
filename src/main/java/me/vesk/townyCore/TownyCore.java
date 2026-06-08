@@ -9,6 +9,7 @@ public final class TownyCore extends JavaPlugin {
     private PaperCommandManager commandManager;
     private ConfigManager configManager;
     private TownsConfig townsConfig;
+    private BuildsConfig buildsConfig;
 
 
     @Override
@@ -16,7 +17,8 @@ public final class TownyCore extends JavaPlugin {
         this.configManager = new ConfigManager(this);
         this.townsConfig = new TownsConfig(this);
 
-        this.manager = new Manager(this,configManager);
+        this.buildsConfig = new BuildsConfig(this);
+        this.manager = new Manager(this,configManager,buildsConfig);
 
         commandManager = new PaperCommandManager(this);
         commandManager.registerCommand(new Commands(this, configManager,townsConfig,manager));
