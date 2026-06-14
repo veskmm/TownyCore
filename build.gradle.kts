@@ -19,6 +19,8 @@ dependencies {
     implementation("com.github.stefvanschie.inventoryframework:IF:0.10.12")
 }
 
+
+
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(17)
 }
