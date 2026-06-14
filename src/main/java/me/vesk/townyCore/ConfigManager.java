@@ -80,6 +80,14 @@ public class ConfigManager {
         return config.getString("messages.createTown");
     }
 
+    public String getNotTownPos() {
+        return config.getString("messages.notTownPos");
+    }
+
+    public String getNotTown() {
+        return config.getString("messages.notTown");
+    }
+
     public Integer getLevelsClaim() {
         return config.getInt("claim_levels");
     }

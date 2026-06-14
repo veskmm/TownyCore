@@ -18,10 +18,10 @@ public final class TownyCore extends JavaPlugin {
         this.townsConfig = new TownsConfig(this);
 
         this.buildsConfig = new BuildsConfig(this);
-        this.manager = new Manager(this,configManager,buildsConfig);
+        this.manager = new Manager(this,configManager,buildsConfig,townsConfig);
 
         commandManager = new PaperCommandManager(this);
-        commandManager.registerCommand(new Commands(this, configManager,townsConfig,manager));
+        commandManager.registerCommand(new Commands(this, configManager,townsConfig,manager,buildsConfig));
 
         saveDefaultConfig();
 

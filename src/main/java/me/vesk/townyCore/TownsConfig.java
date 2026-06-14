@@ -51,6 +51,14 @@ public class TownsConfig {
     public Integer getInt(String path) {
         return config.getInt(path);
     }
+    public Boolean isHasBuild(String townName, String buildName) {
+        return config.getBoolean(townName +"."+ buildName);
+    }
+    public void setHasBuild(String townName, String buildName) {
+        config.set(townName +"."+ buildName,true);
+        saveConfig();
+    }
+
 
     public void setLine(String path, Object value) {
         config.set(path,value);

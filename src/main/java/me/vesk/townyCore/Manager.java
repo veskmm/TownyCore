@@ -1,9 +1,8 @@
 package me.vesk.townyCore;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
+import com.palmergames.bukkit.towny.TownyAPI;
+import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.*;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -20,18 +19,27 @@ public class Manager {
     private Map<String,Integer> demand = new HashMap<>();
     private final ConfigManager configManager;
     private final BuildsConfig buildsConfig;
+    private final TownsConfig townsConfig;
 
-    public Manager(JavaPlugin plugin, ConfigManager configManager, BuildsConfig buildsConfig) {
+    private TownyAPI apiTowny;
+
+    public Manager(JavaPlugin plugin, ConfigManager configManager, BuildsConfig buildsConfig, TownsConfig townsConfig) {
         this.plugin = plugin;
         this.configManager = configManager;
         this.buildsConfig = buildsConfig;
+        this.townsConfig = townsConfig;
+
+        apiTowny = TownyAPI.getInstance();
     }
 
-    public void writingOffDemand(Player player, Boolean is_claim, Integer level_claim) {
+    public void writingOffDemand(Player player, Boolean is_claim, Integer level_claim, Boolean is_build,String nameBuld) {
         Map<Material, Integer> demandResources = configManager.getDemand("demand.resources");
 
         if (is_claim) {
             demandResources = configManager.getDemandClaim(level_claim);
+        }
+        if (is_build) {
+            demandResources = buildsConfig.getDemandBuild(nameBuld);
         }
 
         for (Map.Entry<Material, Integer> entry : demandResources.entrySet()) {
@@ -63,11 +71,14 @@ public class Manager {
 
     }
 
-    public List<List<Component>> checkDemand(Player player, Boolean is_claim, Integer level_claim) {
+    public List<List<Component>> checkDemand(Player player, Boolean is_claim, Integer level_claim, Boolean is_build, String nameBuld) {
         ItemStack[] playerResources = player.getInventory().getStorageContents();
         Map<Material, Integer> demandResources = configManager.getDemand("demand.resources");
         if (is_claim) {
             demandResources = configManager.getDemandClaim(level_claim);
+        }
+        if (is_build) {
+            demandResources = buildsConfig.getDemandBuild(nameBuld);
         }
 
         for (int i = 0; i < playerResources.length; i++) {
@@ -88,8 +99,6 @@ public class Manager {
         List<Component> missingComponents = new ArrayList<>();
         List<Component> missingAmount = new ArrayList<>();
 
-
-
         if (!demandResources.isEmpty()) {
             for (Map.Entry<Material, Integer> entry : demandResources.entrySet()) {
                 String translationKey = entry.getKey().translationKey();
@@ -107,6 +116,40 @@ public class Manager {
     }
 
     public void makeBuild(Location cord, Player player, String nameBuld) {
+
+        if (townsConfig.isHasBuild(apiTowny.getTownName(player),nameBuld)) {
+            player.sendMessage(" fdf");
+            return;
+        }
+
+        List<List<Component>> firthResult = checkDemand(player,false,10,true,nameBuld);
+
+        List<Component> missingComponents = firthResult.get(0);
+        List<Component> missingAmounts = firthResult.get(1);
+
+        if (!missingComponents.isEmpty()) {
+            Component message = Component.empty();
+
+            int i = 0;
+            for (Component mC : missingComponents) {
+                message = message.append(Component.newline())
+                        .append(Component.text("- "))
+                        .append(mC)
+                        .append(Component.text(" "))
+                        .append(missingAmounts.get(i).color(NamedTextColor.GOLD))
+                        .append(Component.text(" штук").color(NamedTextColor.GOLD));
+                i++;
+            }
+
+            String rawMessage = configManager.getNotEnoughResources();
+            String filledMessage = rawMessage.replace("{missingResources}", "");
+
+            String coloredMessage = ChatColor.translateAlternateColorCodes('&', filledMessage);
+            player.sendMessage(coloredMessage);
+            player.sendMessage(message);
+
+            return;
+        }
         BlockData[][][] matrix_blocks = buildsConfig.loadMatrix(nameBuld+".blocks");
 
         int playerX = (int) cord.x();
@@ -118,6 +161,31 @@ public class Manager {
         // Матрица может быть пустой или иметь нулевую длину
         if (matrix_blocks == null || matrix_blocks.length == 0) return;
 
+        if (apiTowny.getTownName(player) == null) {
+            player.sendMessage(configManager.getNotTown());
+            return;
+        }
+        if (apiTowny.getTownName(player).equals("")) {
+            player.sendMessage(configManager.getNotTown());
+            return;
+        }
+        for (int Y = playerY; Y < matrix_blocks.length + playerY; Y++) {
+            for (int X = playerX; X < matrix_blocks[0].length + playerX; X++) {
+                for (int Z = playerZ; Z < matrix_blocks[0][0].length + playerZ; Z++) {
+                    Location blockLocation = new Location(world, X, Y, Z);
+                    String townName = apiTowny.getTownName(blockLocation);
+
+                    if (townName != null) {
+                        if (!(townName.equals(apiTowny.getTownName(player)))) {
+                            player.sendMessage(configManager.getNotTownPos());
+                            return;
+                        }
+                    }
+                    else return;
+                }
+            }
+        }
+
         for (int Y = playerY; Y < matrix_blocks.length + playerY; Y++) {
             for (int X = playerX; X < matrix_blocks[0].length + playerX; X++) {
                 for (int Z = playerZ; Z < matrix_blocks[0][0].length + playerZ; Z++) {
@@ -125,6 +193,8 @@ public class Manager {
                 }
             }
         }
+        writingOffDemand(player,false,0,true,nameBuld);
+        townsConfig.setHasBuild(apiTowny.getTownName(player),nameBuld);
     }
 
     public boolean addBuild(Location cord1, Location cord2, Player player, String nameBuild) {

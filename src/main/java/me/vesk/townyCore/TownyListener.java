@@ -43,14 +43,14 @@ public class TownyListener implements Listener {
 
     @EventHandler
     public void onTownPreClaim(PreNewTownEvent event) {
-        List<List<Component>> firthResult = manager.checkDemand(event.getPlayer(),false,0);
+        List<List<Component>> firthResult = manager.checkDemand(event.getPlayer(),false,0,false,"");
 
         List<Component> missingComponents = firthResult.get(0);
         List<Component> missingAmounts = firthResult.get(1);
 
         event.getPlayer().sendMessage("");
         if (missingComponents.isEmpty()) {
-            manager.writingOffDemand(event.getPlayer(),false,0);
+            manager.writingOffDemand(event.getPlayer(),false,0,false,"");
             String filledMessage = configManager.getcreateTown().replace("{newTown}",event.getTownName());
             String coloredMessage = ChatColor.translateAlternateColorCodes('&', filledMessage);
             event.getPlayer().sendMessage(coloredMessage);

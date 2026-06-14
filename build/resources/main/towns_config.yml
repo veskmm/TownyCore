@@ -3,3 +3,5 @@ test:
   mayor: ""
   position_x: 1
   position_z: 1
+  builds:
+    test: false

@@ -11,6 +11,8 @@ messages:
   notEnoughResources: "&6&lНе хватает ресурсов: &r{missingResources}"
   notEnoughMoney: "&6&lНе хватает денег! &7Нужно ещё &6{missingMoney}"
   maxClaimLevel: "У вас макс. уровень привата!"
+  notTownPos: "Нельзя построить здание за территорией города!"
+  notTown: "Нельзя построить здание не состоя в каком либо городе!"
 
   townInfo:
     - " "

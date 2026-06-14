@@ -28,16 +28,18 @@ public class Commands extends BaseCommand {
     private final ConfigManager configManager;
     private final TownsConfig townsConfig;
     private final Manager manager;
+    private final BuildsConfig buildsConfig;
 
 
     private TownyAPI apiTowny;
 
 
-    public Commands(JavaPlugin plugin, ConfigManager configManager, TownsConfig townsConfig, Manager manager) {
+    public Commands(JavaPlugin plugin, ConfigManager configManager, TownsConfig townsConfig, Manager manager, BuildsConfig buildsConfig) {
         this.plugin = plugin;
         this.configManager = configManager;
         this.townsConfig = townsConfig;
         this.manager = manager;
+        this.buildsConfig = buildsConfig;
 
         apiTowny = TownyAPI.getInstance();
     }
@@ -46,6 +48,7 @@ public class Commands extends BaseCommand {
     public void pluginReload(CommandSender sender) {
         plugin.reloadConfig();
         configManager.loadConfig();
+        buildsConfig.loadConfig();
         sender.sendMessage("Конфигурация перезагружена.");
     }
 
@@ -58,7 +61,7 @@ public class Commands extends BaseCommand {
             return;
         }
 
-        List<List<Component>> firthResult = manager.checkDemand(player,true,townLevelClaim+1);
+        List<List<Component>> firthResult = manager.checkDemand(player,true,townLevelClaim+1,false,"");
 
         List<Component> missingComponents = firthResult.get(0);
         List<Component> missingAmounts = firthResult.get(1);
@@ -87,7 +90,7 @@ public class Commands extends BaseCommand {
             return;
         }
 
-        manager.writingOffDemand(player,true,townLevelClaim+1);
+        manager.writingOffDemand(player,true,townLevelClaim+1,false,"");
         ArrayList<String> claimPlotsLevel = configManager.getClaimPlots(String.valueOf(townLevelClaim+1));
 
         List<WorldCoord> selection = new ArrayList<>();
@@ -134,7 +137,8 @@ public class Commands extends BaseCommand {
             return;
         }
         Player playerSender = (Player) sender;
-
+        if (apiTowny.getTownName(playerSender) == null) return;
+        if (apiTowny.getTownName(playerSender).equals("")) return;
         ArrayList<String> listMessage = configManager.getTownInfo();
         for (int i = 0; i < listMessage.size(); i++) {
             String message = listMessage.get(i);

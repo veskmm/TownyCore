@@ -26,7 +26,7 @@ public class BuildsConfig {
         this.plugin = plugin;
         loadConfig();
     }
-    private void loadConfig() {
+    public void loadConfig() {
         configFile = new File(plugin.getDataFolder(), "builds_config.yml");
 
         if (!configFile.exists()) {
