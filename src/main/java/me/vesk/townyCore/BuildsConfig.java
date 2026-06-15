@@ -119,10 +119,34 @@ public class BuildsConfig {
     public void createBuildToConfig(String buildName, BlockData[][][] buildBlocks, World world) {
         config.set(buildName+".name","Untitel");
         config.set(buildName+".world",world.getName());
+        config.set(buildName+".material","CRAFTER");
+        List<String> lore = new ArrayList<>();
+        lore.add("Крутое здание");
+
+        config.set(buildName+".lore",lore);
+
+        List<String> builds = config.getStringList("builds_list");
+        builds.add(buildName);
+
+        config.set("builds_list",builds);
 
         saveMatrix(buildName+".blocks",buildBlocks);
 
         saveConfig();
+    }
+
+    public List<String> getBuilds() {
+        return config.getStringList("builds_list");
+    }
+
+    public List<String> getBuildLore(String buildName) {
+        return config.getStringList(buildName+".lore");
+    }
+    public String getBuildName(String buildName) {
+        return config.getString(buildName+".name");
+    }
+    public Material getBuildMaterial(String buildName) {
+        return Material.getMaterial(config.getString(buildName+".material"));
     }
 
     // Сохранение матрицы BlockData в конфиг

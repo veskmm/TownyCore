@@ -115,6 +115,10 @@ public class Manager {
         return finalResult;
     }
 
+    public void startBuild(Player player, String nameBuild) {
+
+    }
+
     public void makeBuild(Location cord, Player player, String nameBuld) {
 
         if (townsConfig.isHasBuild(apiTowny.getTownName(player),nameBuld)) {

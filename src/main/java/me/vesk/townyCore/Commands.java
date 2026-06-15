@@ -151,7 +151,7 @@ public class Commands extends BaseCommand {
     }
 
     @Subcommand("builds add townybuild")
-    //@CommandPermission("townycore.builds.add")
+    //@CommandPermission("townycore.builds.admin")
     public void onTownyBuildAdd(
             CommandSender sender,
             String name,
@@ -170,7 +170,7 @@ public class Commands extends BaseCommand {
     }
 
     @Subcommand("builds make townybuild")
-    //@CommandPermission("townycore.builds.add")
+    //@CommandPermission("townycore.builds.admin")
     public void onTownyBuildMake(
             CommandSender sender,
             String name
@@ -180,5 +180,14 @@ public class Commands extends BaseCommand {
         Player PlayerSender = (Player) sender;
 
         manager.makeBuild(PlayerSender.getLocation(),PlayerSender,name);
+    }
+
+    @Subcommand("builds")
+    @Description("Меню зданий")
+    public void openTownyBuildMenu(CommandSender sender) {
+        if (sender instanceof Player) {
+            BuildMenu buildMenu = new BuildMenu((Player) sender,buildsConfig,manager);
+            buildMenu.openMenu();
+        }
     }
 }
