@@ -1,6 +1,7 @@
 package me.vesk.townyCore;
 
 import co.aikar.commands.BaseCommand;
+import co.aikar.commands.PaperCommandManager;
 import co.aikar.commands.annotation.*;
 import com.palmergames.bukkit.towny.Towny;
 import com.palmergames.bukkit.towny.TownyAPI;
@@ -29,17 +30,18 @@ public class Commands extends BaseCommand {
     private final TownsConfig townsConfig;
     private final Manager manager;
     private final BuildsConfig buildsConfig;
-
+    private final PaperCommandManager commandManager;
 
     private TownyAPI apiTowny;
 
 
-    public Commands(JavaPlugin plugin, ConfigManager configManager, TownsConfig townsConfig, Manager manager, BuildsConfig buildsConfig) {
+    public Commands(JavaPlugin plugin, ConfigManager configManager, TownsConfig townsConfig, Manager manager, BuildsConfig buildsConfig,PaperCommandManager commandManager) {
         this.plugin = plugin;
         this.configManager = configManager;
         this.townsConfig = townsConfig;
         this.manager = manager;
         this.buildsConfig = buildsConfig;
+        this.commandManager = commandManager;
 
         apiTowny = TownyAPI.getInstance();
     }
@@ -187,7 +189,9 @@ public class Commands extends BaseCommand {
     public void openTownyBuildMenu(CommandSender sender) {
         if (sender instanceof Player) {
             BuildMenu buildMenu = new BuildMenu((Player) sender,buildsConfig,manager);
+            plugin.getServer().getPluginManager().registerEvents(buildMenu,plugin);
             buildMenu.openMenu();
+            commandManager.registerCommand(buildMenu);
         }
     }
 }
