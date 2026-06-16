@@ -2,6 +2,7 @@ package me.vesk.townyCore;
 
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.PaperCommandManager;
+import co.aikar.commands.annotation.CommandAlias;
 import co.aikar.commands.annotation.Subcommand;
 import com.github.stefvanschie.inventoryframework.gui.GuiItem;
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui;
@@ -18,6 +19,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.eclipse.aether.repository.LocalArtifactRegistration;
@@ -25,7 +28,7 @@ import org.eclipse.aether.repository.LocalArtifactRegistration;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BuildMenu extends BaseCommand implements Listener {
+public class BuildMenu implements Listener {
 
     private final ChestGui gui;
     private final Player player;
@@ -50,23 +53,10 @@ public class BuildMenu extends BaseCommand implements Listener {
         guiSetup();
     }
 
+    public Player getPlayer() {return player;}
+
     private void guiSetup() {
 
-        // Background
-        StaticPane background = new StaticPane(0, 0, 9, 6);
-
-        ItemStack filler = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
-        ItemMeta meta = filler.getItemMeta();
-        meta.setDisplayName(" ");
-        filler.setItemMeta(meta);
-
-        for (int i = 0; i <= 8; i++) {
-            for (int x = 0; x <= 8; x++) {
-                //background.addItem(new GuiItem(filler, event -> {event.setCancelled(true);}), x, i);
-            }
-        }
-
-        //
         StaticPane buildsBlock = new StaticPane(2,2,5,2);
         List<String> builds = buildsConfig.getBuilds();
         for (int ind = 0; ind < builds.size(); ind++) {
@@ -97,25 +87,23 @@ public class BuildMenu extends BaseCommand implements Listener {
         }
 
         gui.addPane(buildsBlock);
+
+
+        // Background
+        StaticPane background = new StaticPane(0, 0, 9, 6);
+
+        ItemStack filler = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+        ItemMeta meta = filler.getItemMeta();
+        meta.setDisplayName(" ");
+        filler.setItemMeta(meta);
+
+        for (int i = 0; i <= 8; i++) {
+            for (int x = 0; x <= 8; x++) {
+                background.addItem(new GuiItem(filler, event -> {event.setCancelled(true);}), x, i);
+            }
+        }
+
         gui.addPane(background);
-    }
-
-    private void setup() {
-
-        // ============ Функциональные кнопки ============
-        StaticPane FuncItems = new StaticPane(0, 5, 1, 1);
-        ItemStack buttonAccept = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
-        ItemMeta acceptMeta = buttonAccept.getItemMeta();
-        acceptMeta.setDisplayName(ChatColor.RESET + "" + ChatColor.GREEN + "ПРИНЯТЬ ПРЕДЛОЖЕНИЕ");
-        buttonAccept.setItemMeta(acceptMeta);
-        FuncItems.addItem(new GuiItem(buttonAccept, event -> {
-            event.setCancelled(true);
-        }), 0, 0);
-        gui.addPane(FuncItems);
-
-
-        // ============ Добавляем фон (должен быть последним, чтобы не перекрывать другие элементы) ============
-
     }
 
     public void openMenu() {
@@ -130,11 +118,9 @@ public class BuildMenu extends BaseCommand implements Listener {
     }
 
     private void makeMarking(Location startLocal) {
-        player.sendMessage("Тптп");
-
         BlockData[][][] matrix_blocks = buildsConfig.loadMatrix(buildName+".blocks");
 
-        if (oldLayer.length > 0) {
+        if (oldLayer != null) {
             for (int x = 0; x < oldLayer.length; x++) {
                 for (int z = 0; z < oldLayer[x].length; z++) {
                     oldWorld.getBlockAt(x+oldX,oldY,z+oldZ).setType(oldLayer[x][z].getMaterial());
@@ -143,18 +129,22 @@ public class BuildMenu extends BaseCommand implements Listener {
         }
 
         BlockData[][] newLayer = matrix_blocks[0];
-        BlockData[][] oldLayerLocal = matrix_blocks[0];
+        BlockData[][] oldLayerLocal = new BlockData[newLayer.length][newLayer[0].length];
 
         int startX = (int) startLocal.x();
         int startY = (int) startLocal.y();
         int startZ = (int) startLocal.z();
 
+        oldX = startX;
+        oldY = startY;
+        oldZ = startZ;
+
         World world = player.getWorld();
+        oldWorld = world;
 
         for (int x = 0; x < newLayer.length; x++) {
             for (int z = 0; z < newLayer[x].length; z++) {
                 oldLayerLocal[x][z] = world.getBlockData(x+startX,startY,z+startZ);
-                player.sendMessage(String.valueOf(x+startX) + " " + String.valueOf(z+startZ));
                 world.getBlockAt(x+startX,startY,z+startZ).setType(Material.STONE);
             }
         }
@@ -165,16 +155,49 @@ public class BuildMenu extends BaseCommand implements Listener {
 
     @EventHandler
     public void playerClick(PlayerInteractEvent event) {
-        player.sendMessage("Player touche block left mouse button");
         if (!isStartBuild) return;
         if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
+            event.setCancelled(true);
             makeMarking(event.getClickedBlock().getLocation());
         }
     }
 
-    @Subcommand("townycore build_accept")
+    @EventHandler
+    public void playerleave(PlayerQuitEvent event) {
+        if (event.getPlayer().getUniqueId() == player.getUniqueId()) {
+            isStartBuild = false;
+            if (oldLayer != null) {
+                for (int x = 0; x < oldLayer.length; x++) {
+                    for (int z = 0; z < oldLayer[x].length; z++) {
+                        oldWorld.getBlockAt(x+oldX,oldY,z+oldZ).setType(oldLayer[x][z].getMaterial());
+                    }
+                }
+            }
+            manager.buildMenus.remove(this);
+        }
+    }
+
     public void acceptBuild() {
+        player.sendMessage("Начала стройки");
         if (oldLocation == null) return;
+        if (!isStartBuild) return;
+        isStartBuild = false;
         manager.makeBuild(oldLocation,player,buildName);
+        player.sendMessage("ну все окей");
+        manager.buildMenus.remove(this);
+    }
+
+    public void cancelBuild() {
+        player.sendMessage("Отмена");
+        isStartBuild = false;
+        if (oldLayer != null) {
+            for (int x = 0; x < oldLayer.length; x++) {
+                for (int z = 0; z < oldLayer[x].length; z++) {
+                    oldWorld.getBlockAt(x+oldX,oldY,z+oldZ).setType(oldLayer[x][z].getMaterial());
+                }
+            }
+        }
+        player.sendMessage("ну все окей");
+        manager.buildMenus.remove(this);
     }
 }

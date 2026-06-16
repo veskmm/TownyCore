@@ -1,7 +1,0 @@
-test:
-  level_claim: 0
-  mayor: ""
-  position_x: 1
-  position_z: 1
-  builds:
-    test: false

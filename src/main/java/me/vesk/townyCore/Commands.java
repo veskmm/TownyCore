@@ -34,7 +34,6 @@ public class Commands extends BaseCommand {
 
     private TownyAPI apiTowny;
 
-
     public Commands(JavaPlugin plugin, ConfigManager configManager, TownsConfig townsConfig, Manager manager, BuildsConfig buildsConfig,PaperCommandManager commandManager) {
         this.plugin = plugin;
         this.configManager = configManager;
@@ -190,8 +189,38 @@ public class Commands extends BaseCommand {
         if (sender instanceof Player) {
             BuildMenu buildMenu = new BuildMenu((Player) sender,buildsConfig,manager);
             plugin.getServer().getPluginManager().registerEvents(buildMenu,plugin);
+            manager.buildMenus.add(buildMenu);
             buildMenu.openMenu();
-            commandManager.registerCommand(buildMenu);
+        }
+    }
+
+    @Subcommand("build_accept")
+    public void buildAccept(CommandSender sender) {
+        if (sender instanceof Player) {
+            Player player = (Player) sender;
+            for (int i = 0; i < manager.buildMenus.size(); i++) {
+                plugin.getLogger().warning("ищем");
+                if (manager.buildMenus.get(i).getPlayer().getUniqueId() == player.getUniqueId()) {
+                    manager.buildMenus.get(i).acceptBuild();
+                    return;
+                }
+                else {
+                    plugin.getLogger().warning("не нашли");
+                }
+            }
+        }
+    }
+
+    @Subcommand("build_cancel")
+    public void buildCancel(CommandSender sender) {
+        if (sender instanceof Player) {
+            Player player = (Player) sender;
+            for (int i = 0; i < manager.buildMenus.size(); i++) {
+                if (manager.buildMenus.get(i).getPlayer().getUniqueId() == player.getUniqueId() ) {
+                    manager.buildMenus.get(i).cancelBuild();
+                    return;
+                }
+            }
         }
     }
 }

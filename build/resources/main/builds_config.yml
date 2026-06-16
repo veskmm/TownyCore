@@ -1,9 +1,1 @@
-test:
-  name: ""
-  resources:
-    - "STONE 10"
-  blocks:
-    -
-  world:
-
 builds_list: []

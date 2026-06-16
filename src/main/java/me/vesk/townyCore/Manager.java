@@ -36,6 +36,8 @@ public class Manager implements Listener {
         apiTowny = TownyAPI.getInstance();
     }
 
+    public ArrayList<BuildMenu> buildMenus = new ArrayList<>();
+
     public void writingOffDemand(Player player, Boolean is_claim, Integer level_claim, Boolean is_build,String nameBuld) {
         Map<Material, Integer> demandResources = configManager.getDemand("demand.resources");
 

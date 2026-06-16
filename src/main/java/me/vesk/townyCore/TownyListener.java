@@ -51,7 +51,7 @@ public class TownyListener implements Listener {
         event.getPlayer().sendMessage("");
         if (missingComponents.isEmpty()) {
             manager.writingOffDemand(event.getPlayer(),false,0,false,"");
-            String filledMessage = configManager.getcreateTown().replace("{newTown}",event.getTownName());
+            String filledMessage = configManager.getCreateTown().replace("{newTown}",event.getTownName());
             String coloredMessage = ChatColor.translateAlternateColorCodes('&', filledMessage);
             event.getPlayer().sendMessage(coloredMessage);
 
