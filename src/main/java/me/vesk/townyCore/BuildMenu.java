@@ -9,6 +9,7 @@ import com.github.stefvanschie.inventoryframework.gui.type.ChestGui;
 import com.github.stefvanschie.inventoryframework.gui.type.util.Gui;
 import com.github.stefvanschie.inventoryframework.pane.StaticPane;
 import com.github.stefvanschie.inventoryframework.pane.util.Slot;
+import com.palmergames.bukkit.towny.TownyAPI;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -34,6 +35,9 @@ public class BuildMenu implements Listener {
     private final Player player;
     private final BuildsConfig buildsConfig;
     private final Manager manager;
+    private final TownsConfig townsConfig;
+
+    private TownyAPI apiTowny = TownyAPI.getInstance();
 
     private boolean isStartBuild = false;
     private String buildName;
@@ -44,11 +48,12 @@ public class BuildMenu implements Listener {
     private int oldY;
     private int oldZ;
 
-    public BuildMenu(Player player, BuildsConfig buildsConfig, Manager manager) {
+    public BuildMenu(Player player, BuildsConfig buildsConfig, Manager manager,TownsConfig townsConfig) {
         this.buildsConfig = buildsConfig;
         this.player = player;
         this.manager = manager;
         this.gui = new ChestGui(6, "Городские здания");
+        this.townsConfig = townsConfig;
 
         guiSetup();
     }
@@ -79,6 +84,10 @@ public class BuildMenu implements Listener {
             build.setItemMeta(metaBuild);
             int index = ind;
             buildsBlock.addItem(new GuiItem(build, event -> {
+                if (townsConfig.isHasBuild(apiTowny.getTownName(player),builds.get(index))) {
+                    player.sendMessage("Здание уже построенно");
+                    return;
+                }
                 startBuild(player, builds.get(index));
                 player.closeInventory();
                 event.setCancelled(true);
@@ -145,7 +154,7 @@ public class BuildMenu implements Listener {
         for (int x = 0; x < newLayer.length; x++) {
             for (int z = 0; z < newLayer[x].length; z++) {
                 oldLayerLocal[x][z] = world.getBlockData(x+startX,startY,z+startZ);
-                world.getBlockAt(x+startX,startY,z+startZ).setType(Material.STONE);
+                world.getBlockAt(x+startX,startY,z+startZ).setType(Material.RED_CONCRETE);
             }
         }
         oldLayer = oldLayerLocal;
@@ -179,11 +188,20 @@ public class BuildMenu implements Listener {
 
     public void acceptBuild() {
         player.sendMessage("Начала стройки");
+
+        if (oldLayer != null) {
+            for (int x = 0; x < oldLayer.length; x++) {
+                for (int z = 0; z < oldLayer[x].length; z++) {
+                    oldWorld.getBlockAt(x+oldX,oldY,z+oldZ).setType(oldLayer[x][z].getMaterial());
+                }
+            }
+        }
+
         if (oldLocation == null) return;
         if (!isStartBuild) return;
         isStartBuild = false;
         manager.makeBuild(oldLocation,player,buildName);
-        player.sendMessage("ну все окей");
+
         manager.buildMenus.remove(this);
     }
 
@@ -197,7 +215,6 @@ public class BuildMenu implements Listener {
                 }
             }
         }
-        player.sendMessage("ну все окей");
         manager.buildMenus.remove(this);
     }
 }

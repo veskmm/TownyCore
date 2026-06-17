@@ -122,12 +122,6 @@ public class Manager implements Listener {
     }
 
     public void makeBuild(Location cord, Player player, String nameBuld) {
-
-        if (townsConfig.isHasBuild(apiTowny.getTownName(player),nameBuld)) {
-            player.sendMessage(" fdf");
-            return;
-        }
-
         List<List<Component>> firthResult = checkDemand(player,false,10,true,nameBuld);
 
         List<Component> missingComponents = firthResult.get(0);
@@ -165,7 +159,10 @@ public class Manager implements Listener {
         World world = player.getWorld();
 
         // Матрица может быть пустой или иметь нулевую длину
-        if (matrix_blocks == null || matrix_blocks.length == 0) return;
+        if (matrix_blocks == null || matrix_blocks.length == 0) {
+            player.sendMessage("Матрица пуста или имеет нулевую длину, сообщите администрации");
+            return;
+        }
 
         if (apiTowny.getTownName(player) == null) {
             player.sendMessage(configManager.getNotTown());
@@ -187,7 +184,10 @@ public class Manager implements Listener {
                             return;
                         }
                     }
-                    else return;
+                    else {
+                        player.sendMessage(configManager.getNotTownPos());
+                        return;
+                    }
                 }
             }
         }
