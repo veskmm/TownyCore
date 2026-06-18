@@ -84,13 +84,14 @@ public class BuildMenu implements Listener {
             build.setItemMeta(metaBuild);
             int index = ind;
             buildsBlock.addItem(new GuiItem(build, event -> {
+                event.setCancelled(true);
                 if (townsConfig.isHasBuild(apiTowny.getTownName(player),builds.get(index))) {
                     player.sendMessage("Здание уже построенно");
                     return;
                 }
                 startBuild(player, builds.get(index));
                 player.closeInventory();
-                event.setCancelled(true);
+
             }
             ),ind,0);
         }

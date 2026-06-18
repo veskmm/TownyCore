@@ -5,13 +5,16 @@ import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.event.DeleteTownEvent;
 import com.palmergames.bukkit.towny.event.PreNewTownEvent;
 
+import com.palmergames.bukkit.towny.event.TownClaimEvent;
 import com.palmergames.bukkit.towny.event.TownPreClaimEvent;
+import com.palmergames.bukkit.towny.object.Coord;
 import com.palmergames.bukkit.towny.object.WorldCoord;
 import com.palmergames.bukkit.towny.tasks.TownClaim;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -19,7 +22,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.awt.*;
 import java.nio.Buffer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import net.kyori.adventure.text.Component;
 
@@ -40,7 +45,6 @@ public class TownyListener implements Listener {
         this.api = TownyAPI.getInstance();
     }
 
-
     @EventHandler
     public void onTownPreClaim(PreNewTownEvent event) {
         List<List<Component>> firthResult = manager.checkDemand(event.getPlayer(),false,0,false,"");
@@ -59,6 +63,7 @@ public class TownyListener implements Listener {
             townsConfig.setLine(event.getTownName()+".mayor",event.getPlayer().getName());
             townsConfig.setLine(event.getTownName()+".position_x",event.getTownWorldCoord().getX());
             townsConfig.setLine(event.getTownName()+".position_z",event.getTownWorldCoord().getZ());
+            townsConfig.setLine(event.getTownName()+".oldBorder", new HashMap<Location, BlockData>());
         }
         else {
             event.setCancelMessage("");
@@ -90,5 +95,10 @@ public class TownyListener implements Listener {
     @EventHandler
     public void deletedTown(DeleteTownEvent event) {
         townsConfig.setLine(event.getTownName(), null);
+    }
+
+    @EventHandler
+    public void claimTown(TownClaimEvent event) {
+        manager.showTownBorder(event.getTown().getName());
     }
 }

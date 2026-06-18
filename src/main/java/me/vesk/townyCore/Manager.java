@@ -1,8 +1,12 @@
 package me.vesk.townyCore;
 
 import com.palmergames.bukkit.towny.TownyAPI;
+import com.palmergames.bukkit.towny.object.Coord;
+import com.palmergames.bukkit.towny.object.TownBlock;
+import com.palmergames.bukkit.towny.object.WorldCoord;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.*;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -17,28 +21,27 @@ import java.util.*;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
+import org.eclipse.aether.collection.CollectStepData;
 
 public class Manager implements Listener {
     private final JavaPlugin plugin;
-    private Map<String,Integer> demand = new HashMap<>();
+    private Map<String, Integer> demand = new HashMap<>();
     private final ConfigManager configManager;
     private final BuildsConfig buildsConfig;
     private final TownsConfig townsConfig;
 
-    private TownyAPI apiTowny;
+    private TownyAPI apiTowny = TownyAPI.getInstance();
 
     public Manager(JavaPlugin plugin, ConfigManager configManager, BuildsConfig buildsConfig, TownsConfig townsConfig) {
         this.plugin = plugin;
         this.configManager = configManager;
         this.buildsConfig = buildsConfig;
         this.townsConfig = townsConfig;
-
-        apiTowny = TownyAPI.getInstance();
     }
 
     public ArrayList<BuildMenu> buildMenus = new ArrayList<>();
 
-    public void writingOffDemand(Player player, Boolean is_claim, Integer level_claim, Boolean is_build,String nameBuld) {
+    public void writingOffDemand(Player player, Boolean is_claim, Integer level_claim, Boolean is_build, String nameBuld) {
         Map<Material, Integer> demandResources = configManager.getDemand("demand.resources");
 
         if (is_claim) {
@@ -57,7 +60,9 @@ public class Manager implements Listener {
                     continue;  // пустой слот — пропускаем
                 }
 
-                if (item.getType() != entry.getKey()) {continue;}
+                if (item.getType() != entry.getKey()) {
+                    continue;
+                }
 
                 int toRemove = entry.getValue();
                 int itemAmout = item.getAmount();
@@ -65,8 +70,7 @@ public class Manager implements Listener {
                 if (toRemove >= itemAmout) {
                     player.getInventory().remove(item);
                     toRemove -= itemAmout;
-                }
-                else {
+                } else {
                     item.setAmount(itemAmout - toRemove);
                     toRemove = 0;
                     break;
@@ -88,7 +92,9 @@ public class Manager implements Listener {
         }
 
         for (int i = 0; i < playerResources.length; i++) {
-            if (playerResources[i] == null) {continue;}
+            if (playerResources[i] == null) {
+                continue;
+            }
             ItemStack itemStack = playerResources[i];
             Material material = playerResources[i].getType();
             if (demandResources.containsKey(material)) {
@@ -122,7 +128,7 @@ public class Manager implements Listener {
     }
 
     public void makeBuild(Location cord, Player player, String nameBuld) {
-        List<List<Component>> firthResult = checkDemand(player,false,10,true,nameBuld);
+        List<List<Component>> firthResult = checkDemand(player, false, 10, true, nameBuld);
 
         List<Component> missingComponents = firthResult.get(0);
         List<Component> missingAmounts = firthResult.get(1);
@@ -150,7 +156,7 @@ public class Manager implements Listener {
 
             return;
         }
-        BlockData[][][] matrix_blocks = buildsConfig.loadMatrix(nameBuld+".blocks");
+        BlockData[][][] matrix_blocks = buildsConfig.loadMatrix(nameBuld + ".blocks");
 
         int playerX = (int) cord.x();
         int playerY = (int) cord.y();
@@ -183,8 +189,7 @@ public class Manager implements Listener {
                             player.sendMessage(configManager.getNotTownPos());
                             return;
                         }
-                    }
-                    else {
+                    } else {
                         player.sendMessage(configManager.getNotTownPos());
                         return;
                     }
@@ -195,12 +200,12 @@ public class Manager implements Listener {
         for (int Y = playerY; Y < matrix_blocks.length + playerY; Y++) {
             for (int X = playerX; X < matrix_blocks[0].length + playerX; X++) {
                 for (int Z = playerZ; Z < matrix_blocks[0][0].length + playerZ; Z++) {
-                    world.getBlockAt(X,Y,Z).setBlockData(matrix_blocks[Y-playerY][X-playerX][Z-playerZ]);
+                    world.getBlockAt(X, Y, Z).setBlockData(matrix_blocks[Y - playerY][X - playerX][Z - playerZ]);
                 }
             }
         }
-        writingOffDemand(player,false,0,true,nameBuld);
-        townsConfig.setHasBuild(apiTowny.getTownName(player),nameBuld);
+        writingOffDemand(player, false, 0, true, nameBuld);
+        townsConfig.setHasBuild(apiTowny.getTownName(player), nameBuld);
     }
 
     public boolean addBuild(Location cord1, Location cord2, Player player, String nameBuild) {
@@ -213,13 +218,13 @@ public class Manager implements Listener {
         int y2 = (int) cord2.y();
         int z2 = (int) cord2.z();
 
-        int maxX = Integer.max(x1,x2);
-        int maxY = Integer.max(y1,y2);
-        int maxZ = Integer.max(z1,z2);
+        int maxX = Integer.max(x1, x2);
+        int maxY = Integer.max(y1, y2);
+        int maxZ = Integer.max(z1, z2);
 
-        int minX = Integer.min(x1,x2);
-        int minY = Integer.min(y1,y2);
-        int minZ = Integer.min(z1,z2);
+        int minX = Integer.min(x1, x2);
+        int minY = Integer.min(y1, y2);
+        int minZ = Integer.min(z1, z2);
 
         // Создаем трехмерный массив
         BlockData[][][] build_matrix = new BlockData[maxY - minY][maxX - minX][maxZ - minZ];
@@ -229,13 +234,123 @@ public class Manager implements Listener {
         for (int Y = minY; Y < maxY; Y++) {
             for (int X = minX; X < maxX; X++) {
                 for (int Z = minZ; Z < maxZ; Z++) {
-                    build_matrix[Y - minY][X - minX][Z - minZ] = world.getBlockData(X,Y,Z);
+                    build_matrix[Y - minY][X - minX][Z - minZ] = world.getBlockData(X, Y, Z);
                 }
             }
         }
 
-        buildsConfig.createBuildToConfig(nameBuild,build_matrix,player.getWorld());
+        buildsConfig.createBuildToConfig(nameBuild, build_matrix, player.getWorld());
 
         return true;
     }
+
+    public void showTownBorder(String townName) {
+        Collection<TownBlock> townBlocks = apiTowny.getTown(townName).getTownBlocks();
+
+        ArrayList<WorldCoord> coordsBorderChunk = new ArrayList<>();
+
+        clearBorder(townName);
+
+        Set<WorldCoord> townChunks = new HashSet<>();
+        for (TownBlock block : apiTowny.getTown(townName).getTownBlocks()) {
+            townChunks.add(block.getWorldCoord());
+        }
+
+        for (TownBlock block : townBlocks) {
+            WorldCoord coord = block.getWorldCoord(); // [citation:9]
+            int chunkX = coord.getX();
+            int chunkZ = coord.getZ();
+
+            String worldName = coord.getWorldName();
+
+            if (!townChunks.contains((new WorldCoord(worldName, chunkX - 1, chunkZ)))) {
+                coordsBorderChunk.add(coord);
+                continue;
+            }
+            if (!townChunks.contains((new WorldCoord(worldName, chunkX + 1, chunkZ)))) {
+                coordsBorderChunk.add(coord);
+                continue;
+            }
+            if (!townChunks.contains((new WorldCoord(worldName, chunkX, chunkZ + 1)))) {
+                coordsBorderChunk.add(coord);
+                continue;
+            }
+            if (!townChunks.contains((new WorldCoord(worldName, chunkX, chunkZ - 1)))) {
+                coordsBorderChunk.add(coord);
+                continue;
+            }
+        }
+
+        World world = apiTowny.getTown(townName).getWorld();
+        int y = (int) 100; // или фиксированная высота
+        Map<Location, BlockData> ds = new HashMap<>();
+
+        for (WorldCoord chunkCoord : coordsBorderChunk) {
+            int chunkX = chunkCoord.getX();
+            int chunkZ = chunkCoord.getZ();
+            String worldName = chunkCoord.getWorldName();
+
+            int minX = chunkX * 16;
+            int minZ = chunkZ * 16;
+            int maxX = chunkX * 16 + 15;
+            int maxZ = chunkZ * 16 + 15;
+
+            // Северная граница (Z - 1)
+            if (!townChunks.contains(new WorldCoord(worldName, chunkX, chunkZ - 1).getChunks())) {
+                for (int x = minX; x <= maxX; x++) {
+                    Location loc = new Location(world, x, y, minZ);
+                    ds.put(new Location(world,x,y,minZ), world.getBlockData(x, y, minZ));
+                    placeBorderBlock(loc, townName);
+                }
+            }
+
+            // Южная граница (Z + 1)
+            if (!townChunks.contains(new WorldCoord(worldName, chunkX, chunkZ + 1).getChunks())) {
+                for (int x = minX; x <= maxX; x++) {
+                    Location loc = new Location(world, x, y, maxZ);
+                    ds.put(new Location(world,x,y,maxZ), world.getBlockData(x, y, maxZ));
+                    placeBorderBlock(loc, townName);
+                }
+            }
+
+            // Западная граница (X - 1)
+            if (!townChunks.contains(new WorldCoord(worldName, chunkX - 1, chunkZ).getChunks())) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    Location loc = new Location(world, minX, y, z);
+                    ds.put(new Location(world,minX,y,z), world.getBlockData(minX, y, z));
+                    placeBorderBlock(loc, townName);
+                }
+            }
+
+            // Восточная граница (X + 1)
+            if (!townChunks.contains(new WorldCoord(worldName, chunkX + 1, chunkZ).getChunks())) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    Location loc = new Location(world, maxX, y, z);
+                    ds.put(new Location(world,maxX, y, z), world.getBlockData(maxX, y, z));
+                    placeBorderBlock(loc, townName);
+                }
+            }
+
+
+        }
+        townsConfig.saveOldBorder(townName,ds);
+    }
+
+    private void placeBorderBlock(Location loc, String townName) {
+        Block block = loc.getBlock();
+        block.setType(Material.YELLOW_CONCRETE); // Или любой другой блок
+
+    }
+
+    public void clearBorder(String townName) {
+        Map<Location,BlockData> oldCoordsBlocks = townsConfig.loadOldBorder(townName + ".oldBorder");
+        if (oldCoordsBlocks == null) return;
+
+        World world = apiTowny.getTown(townName).getWorld();
+        for (Map.Entry<Location, BlockData> entry : oldCoordsBlocks.entrySet()) {
+            world.getBlockAt(entry.getKey()).setBlockData(entry.getValue());
+        }
+    }
 }
+
+
