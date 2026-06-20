@@ -154,9 +154,11 @@ public class Manager implements Listener {
             String coloredMessage = ChatColor.translateAlternateColorCodes('&', filledMessage);
             player.sendMessage(coloredMessage);
             player.sendMessage(message);
+            player.sendMessage(" ");
 
             return;
         }
+        writingOffDemand(player, false, 0, true, nameBuld);
         BlockData[][][] matrix_blocks = buildsConfig.loadMatrix(nameBuld + ".blocks");
 
         int playerX = (int) cord.x();
@@ -205,7 +207,7 @@ public class Manager implements Listener {
                 }
             }
         }
-        writingOffDemand(player, false, 0, true, nameBuld);
+
         townsConfig.setHasBuild(apiTowny.getTownName(player), nameBuld);
     }
 

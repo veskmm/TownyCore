@@ -10,6 +10,8 @@ import com.github.stefvanschie.inventoryframework.gui.type.util.Gui;
 import com.github.stefvanschie.inventoryframework.pane.StaticPane;
 import com.github.stefvanschie.inventoryframework.pane.util.Slot;
 import com.palmergames.bukkit.towny.TownyAPI;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -36,6 +38,7 @@ public class BuildMenu implements Listener {
     private final BuildsConfig buildsConfig;
     private final Manager manager;
     private final TownsConfig townsConfig;
+    private final ConfigManager configManager;
 
     private TownyAPI apiTowny = TownyAPI.getInstance();
 
@@ -48,12 +51,13 @@ public class BuildMenu implements Listener {
     private int oldY;
     private int oldZ;
 
-    public BuildMenu(Player player, BuildsConfig buildsConfig, Manager manager,TownsConfig townsConfig) {
+    public BuildMenu(Player player, BuildsConfig buildsConfig, Manager manager,TownsConfig townsConfig, ConfigManager configManager) {
         this.buildsConfig = buildsConfig;
         this.player = player;
         this.manager = manager;
         this.gui = new ChestGui(6, "Городские здания");
         this.townsConfig = townsConfig;
+        this.configManager = configManager;
 
         guiSetup();
     }
@@ -130,6 +134,71 @@ public class BuildMenu implements Listener {
     private void makeMarking(Location startLocal) {
         BlockData[][][] matrix_blocks = buildsConfig.loadMatrix(buildName+".blocks");
 
+        if (apiTowny.getTownName(player) == null) {
+            player.sendMessage(configManager.getNotTown());
+            return;
+        }
+        if (apiTowny.getTownName(player).equals("")) {
+            player.sendMessage(configManager.getNotTown());
+            return;
+        }
+
+        int startX = (int) startLocal.x();
+        int startY = (int) startLocal.y();
+        int startZ = (int) startLocal.z();
+
+        World world = player.getWorld();
+
+        for (int Y = startY; Y < matrix_blocks.length + startY; Y++) {
+            for (int X = startX; X < matrix_blocks[0].length + startX; X++) {
+                for (int Z = startZ; Z < matrix_blocks[0][0].length + startZ; Z++) {
+                    Location blockLocation = new Location(world, X, Y, Z);
+                    String townName = apiTowny.getTownName(blockLocation);
+
+                    if (townName != null) {
+                        if (!(townName.equals(apiTowny.getTownName(player)))) {
+                            player.sendMessage(configManager.getNotTownPos());
+                            return;
+                        }
+                    } else {
+                        player.sendMessage(configManager.getNotTownPos());
+                        return;
+                    }
+                }
+            }
+        }
+
+        player.sendMessage(buildName);
+        List<List<Component>> firthResult = manager.checkDemand(player, false, 10, true, buildName);
+
+        List<Component> missingComponents = firthResult.get(0);
+        List<Component> missingAmounts = firthResult.get(1);
+
+        if (!missingComponents.isEmpty()) {
+            Component message = Component.empty();
+
+            int i = 0;
+            for (Component mC : missingComponents) {
+                message = message.append(Component.newline())
+                        .append(Component.text("- "))
+                        .append(mC)
+                        .append(Component.text(" "))
+                        .append(missingAmounts.get(i).color(NamedTextColor.GOLD))
+                        .append(Component.text(" штук").color(NamedTextColor.GOLD));
+                i++;
+            }
+
+            String rawMessage = configManager.getNotEnoughResources();
+            String filledMessage = rawMessage.replace("{missingResources}", "");
+
+            String coloredMessage = ChatColor.translateAlternateColorCodes('&', filledMessage);
+            player.sendMessage(coloredMessage);
+            player.sendMessage(message);
+            cancelBuild();
+
+            return;
+        }
+
         if (oldLayer != null) {
             for (int x = 0; x < oldLayer.length; x++) {
                 for (int z = 0; z < oldLayer[x].length; z++) {
@@ -141,15 +210,10 @@ public class BuildMenu implements Listener {
         BlockData[][] newLayer = matrix_blocks[0];
         BlockData[][] oldLayerLocal = new BlockData[newLayer.length][newLayer[0].length];
 
-        int startX = (int) startLocal.x();
-        int startY = (int) startLocal.y();
-        int startZ = (int) startLocal.z();
-
         oldX = startX;
         oldY = startY;
         oldZ = startZ;
 
-        World world = player.getWorld();
         oldWorld = world;
 
         for (int x = 0; x < newLayer.length; x++) {
