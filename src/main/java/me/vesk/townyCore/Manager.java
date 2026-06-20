@@ -2,6 +2,7 @@ package me.vesk.townyCore;
 
 import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.object.Coord;
+import com.palmergames.bukkit.towny.object.Town;
 import com.palmergames.bukkit.towny.object.TownBlock;
 import com.palmergames.bukkit.towny.object.WorldCoord;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -245,95 +246,125 @@ public class Manager implements Listener {
     }
 
     public void showTownBorder(String townName) {
-        Collection<TownBlock> townBlocks = apiTowny.getTown(townName).getTownBlocks();
+        Town town = apiTowny.getTown(townName);
 
-        ArrayList<WorldCoord> coordsBorderChunk = new ArrayList<>();
+        if (town == null) {
+            return;
+        }
 
+        Collection<TownBlock> townBlocks = town.getTownBlocks();
+
+        if (townBlocks == null || townBlocks.isEmpty()) {
+            return;
+        }
+
+        // Сначала восстанавливаем предыдущую границу.
         clearBorder(townName);
 
         Set<WorldCoord> townChunks = new HashSet<>();
-        for (TownBlock block : apiTowny.getTown(townName).getTownBlocks()) {
+
+        for (TownBlock block : townBlocks) {
             townChunks.add(block.getWorldCoord());
         }
 
-        for (TownBlock block : townBlocks) {
-            WorldCoord coord = block.getWorldCoord(); // [citation:9]
+        // Здесь сохраняем блоки, которые будут заменены границей.
+        Map<Location, BlockData> oldBlocks = new HashMap<>();
+
+        for (TownBlock townBlock : townBlocks) {
+            WorldCoord coord = townBlock.getWorldCoord();
+
             int chunkX = coord.getX();
             int chunkZ = coord.getZ();
-
             String worldName = coord.getWorldName();
 
-            if (!townChunks.contains((new WorldCoord(worldName, chunkX - 1, chunkZ)))) {
-                coordsBorderChunk.add(coord);
-                continue;
-            }
-            if (!townChunks.contains((new WorldCoord(worldName, chunkX + 1, chunkZ)))) {
-                coordsBorderChunk.add(coord);
-                continue;
-            }
-            if (!townChunks.contains((new WorldCoord(worldName, chunkX, chunkZ + 1)))) {
-                coordsBorderChunk.add(coord);
-                continue;
-            }
-            if (!townChunks.contains((new WorldCoord(worldName, chunkX, chunkZ - 1)))) {
-                coordsBorderChunk.add(coord);
-                continue;
-            }
-        }
+            World world = Bukkit.getWorld(worldName);
 
-        World world = apiTowny.getTown(townName).getWorld();
-        int y = (int) 100; // или фиксированная высота
-        Map<Location, BlockData> ds = new HashMap<>();
-
-        for (WorldCoord chunkCoord : coordsBorderChunk) {
-            int chunkX = chunkCoord.getX();
-            int chunkZ = chunkCoord.getZ();
-            String worldName = chunkCoord.getWorldName();
+            if (world == null) {
+                continue;
+            }
 
             int minX = chunkX * 16;
+            int maxX = minX + 15;
             int minZ = chunkZ * 16;
-            int maxX = chunkX * 16 + 15;
-            int maxZ = chunkZ * 16 + 15;
+            int maxZ = minZ + 15;
 
-            // Северная граница (Z - 1)
-            if (!townChunks.contains(new WorldCoord(worldName, chunkX, chunkZ - 1).getChunks())) {
+            boolean northFree = !townChunks.contains(
+                    new WorldCoord(worldName, chunkX, chunkZ - 1)
+            );
+
+            boolean southFree = !townChunks.contains(
+                    new WorldCoord(worldName, chunkX, chunkZ + 1)
+            );
+
+            boolean westFree = !townChunks.contains(
+                    new WorldCoord(worldName, chunkX - 1, chunkZ)
+            );
+
+            boolean eastFree = !townChunks.contains(
+                    new WorldCoord(worldName, chunkX + 1, chunkZ)
+            );
+
+            // Север: Z = minZ
+            if (northFree) {
                 for (int x = minX; x <= maxX; x++) {
-                    Location loc = new Location(world, x, y, minZ);
-                    ds.put(new Location(world,x,y,minZ), world.getBlockData(x, y, minZ));
-                    placeBorderBlock(loc, townName);
+                    placeBorderOnSurface(world, x, minZ, oldBlocks);
                 }
             }
 
-            // Южная граница (Z + 1)
-            if (!townChunks.contains(new WorldCoord(worldName, chunkX, chunkZ + 1).getChunks())) {
+            // Юг: Z = maxZ
+            if (southFree) {
                 for (int x = minX; x <= maxX; x++) {
-                    Location loc = new Location(world, x, y, maxZ);
-                    ds.put(new Location(world,x,y,maxZ), world.getBlockData(x, y, maxZ));
-                    placeBorderBlock(loc, townName);
+                    placeBorderOnSurface(world, x, maxZ, oldBlocks);
                 }
             }
 
-            // Западная граница (X - 1)
-            if (!townChunks.contains(new WorldCoord(worldName, chunkX - 1, chunkZ).getChunks())) {
+            // Запад: X = minX
+            if (westFree) {
                 for (int z = minZ; z <= maxZ; z++) {
-                    Location loc = new Location(world, minX, y, z);
-                    ds.put(new Location(world,minX,y,z), world.getBlockData(minX, y, z));
-                    placeBorderBlock(loc, townName);
+                    placeBorderOnSurface(world, minX, z, oldBlocks);
                 }
             }
 
-            // Восточная граница (X + 1)
-            if (!townChunks.contains(new WorldCoord(worldName, chunkX + 1, chunkZ).getChunks())) {
+            // Восток: X = maxX
+            if (eastFree) {
                 for (int z = minZ; z <= maxZ; z++) {
-                    Location loc = new Location(world, maxX, y, z);
-                    ds.put(new Location(world,maxX, y, z), world.getBlockData(maxX, y, z));
-                    placeBorderBlock(loc, townName);
+                    placeBorderOnSurface(world, maxX, z, oldBlocks);
                 }
             }
-
-
         }
-        townsConfig.saveOldBorder(townName,ds);
+
+        townsConfig.saveOldBorder(townName, oldBlocks);
+    }
+
+    private void placeBorderOnSurface(
+            World world,
+            int x,
+            int z,
+            Map<Location, BlockData> oldBlocks
+    ) {
+        Block ground = world.getHighestBlockAt(
+                x,
+                z,
+                HeightMap.MOTION_BLOCKING_NO_LEAVES
+        );
+
+        int y = ground.getY() + 1;
+
+        // Верхний предел мира: выше него блок ставить нельзя.
+        if (y >= world.getMaxHeight()) {
+            return;
+        }
+
+        Location location = new Location(world, x, y, z);
+        Block borderBlock = location.getBlock();
+
+        // Углы обрабатываются два раза, поэтому исходный блок сохраняем лишь один раз.
+        oldBlocks.putIfAbsent(
+                location,
+                borderBlock.getBlockData().clone()
+        );
+
+        borderBlock.setType(Material.YELLOW_CONCRETE, false);
     }
 
     private void placeBorderBlock(Location loc, String townName) {
@@ -343,12 +374,21 @@ public class Manager implements Listener {
     }
 
     public void clearBorder(String townName) {
-        Map<Location,BlockData> oldCoordsBlocks = townsConfig.loadOldBorder(townName + ".oldBorder");
-        if (oldCoordsBlocks == null) return;
+        // Используй тот же ключ, который передаёшь в saveOldBorder().
+        Map<Location, BlockData> oldBlocks = townsConfig.loadOldBorder(townName);
 
-        World world = apiTowny.getTown(townName).getWorld();
-        for (Map.Entry<Location, BlockData> entry : oldCoordsBlocks.entrySet()) {
-            world.getBlockAt(entry.getKey()).setBlockData(entry.getValue());
+        if (oldBlocks == null || oldBlocks.isEmpty()) {
+            return;
+        }
+
+        for (Map.Entry<Location, BlockData> entry : oldBlocks.entrySet()) {
+            Location location = entry.getKey();
+
+            if (location.getWorld() == null) {
+                continue;
+            }
+
+            location.getBlock().setBlockData(entry.getValue(), false);
         }
     }
 }

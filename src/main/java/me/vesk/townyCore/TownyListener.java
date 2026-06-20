@@ -2,11 +2,8 @@ package me.vesk.townyCore;
 
 import com.palmergames.bukkit.towny.Towny;
 import com.palmergames.bukkit.towny.TownyAPI;
-import com.palmergames.bukkit.towny.event.DeleteTownEvent;
-import com.palmergames.bukkit.towny.event.PreNewTownEvent;
+import com.palmergames.bukkit.towny.event.*;
 
-import com.palmergames.bukkit.towny.event.TownClaimEvent;
-import com.palmergames.bukkit.towny.event.TownPreClaimEvent;
 import com.palmergames.bukkit.towny.object.Coord;
 import com.palmergames.bukkit.towny.object.WorldCoord;
 import com.palmergames.bukkit.towny.tasks.TownClaim;
@@ -43,6 +40,11 @@ public class TownyListener implements Listener {
         this.townsConfig = townsConfig;
 
         this.api = TownyAPI.getInstance();
+    }
+
+    @EventHandler
+    public void townCreate(NewTownEvent event) {
+        manager.showTownBorder(event.getTown().getName());
     }
 
     @EventHandler
