@@ -1,7 +1,6 @@
 package me.vesk.townyCore;
 
 import com.palmergames.bukkit.towny.TownyAPI;
-import com.palmergames.bukkit.towny.object.Coord;
 import com.palmergames.bukkit.towny.object.Town;
 import com.palmergames.bukkit.towny.object.TownBlock;
 import com.palmergames.bukkit.towny.object.WorldCoord;
@@ -10,19 +9,13 @@ import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.*;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextColor;
-import org.eclipse.aether.collection.CollectStepData;
 
 public class Manager implements Listener {
     private final JavaPlugin plugin;
@@ -38,6 +31,7 @@ public class Manager implements Listener {
         this.configManager = configManager;
         this.buildsConfig = buildsConfig;
         this.townsConfig = townsConfig;
+
     }
 
     public ArrayList<BuildMenu> buildMenus = new ArrayList<>();
@@ -334,7 +328,6 @@ public class Manager implements Listener {
                 }
             }
         }
-
         townsConfig.saveOldBorder(townName, oldBlocks);
     }
 

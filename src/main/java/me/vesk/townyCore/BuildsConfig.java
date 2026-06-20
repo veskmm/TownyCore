@@ -120,6 +120,7 @@ public class BuildsConfig {
         config.set(buildName+".name","Untitel");
         config.set(buildName+".world",world.getName());
         config.set(buildName+".material","CRAFTER");
+        config.set(buildName+".menu_name","menu");
         List<String> lore = new ArrayList<>();
         lore.add("Крутое здание");
 
@@ -137,6 +138,10 @@ public class BuildsConfig {
 
     public List<String> getBuilds() {
         return config.getStringList("builds_list");
+    }
+
+    public String getMenuName(String buildName) {
+        return config.getString(buildName+".menu_name");
     }
 
     public List<String> getBuildLore(String buildName) {

@@ -187,7 +187,7 @@ public class Commands extends BaseCommand {
     @Description("Меню зданий")
     public void openTownyBuildMenu(CommandSender sender) {
         if (sender instanceof Player) {
-            BuildMenu buildMenu = new BuildMenu((Player) sender,buildsConfig,manager,townsConfig,configManager);
+            BuildMenu buildMenu = new BuildMenu((Player) sender,buildsConfig,manager,townsConfig,configManager,plugin);
             plugin.getServer().getPluginManager().registerEvents(buildMenu,plugin);
             manager.buildMenus.add(buildMenu);
             buildMenu.openMenu();
