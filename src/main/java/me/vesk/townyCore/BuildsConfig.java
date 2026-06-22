@@ -1,7 +1,6 @@
 package me.vesk.townyCore;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
@@ -12,13 +11,13 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public class BuildsConfig {
-    private final JavaPlugin plugin;
 
+    private final JavaPlugin plugin;
     private File configFile;
     private FileConfiguration config;
 
@@ -26,13 +25,24 @@ public class BuildsConfig {
         this.plugin = plugin;
         loadConfig();
     }
+
     public void loadConfig() {
         configFile = new File(plugin.getDataFolder(), "builds_config.yml");
 
+        if (!plugin.getDataFolder().exists() && !plugin.getDataFolder().mkdirs()) {
+            plugin.getLogger().warning("Не удалось создать папку плагина.");
+        }
+
         if (!configFile.exists()) {
-            configFile.getParentFile().mkdirs();
-            // Сохраняем дефолтный файл из ресурсов плагина, если есть
-            plugin.saveResource("builds_config.yml", false);
+            try {
+                if (plugin.getResource("builds_config.yml") != null) {
+                    plugin.saveResource("builds_config.yml", false);
+                } else if (!configFile.createNewFile()) {
+                    plugin.getLogger().warning("Не удалось создать builds_config.yml.");
+                }
+            } catch (IOException exception) {
+                plugin.getLogger().severe("Не удалось создать builds_config.yml: " + exception.getMessage());
+            }
         }
 
         config = YamlConfiguration.loadConfiguration(configFile);
@@ -41,8 +51,8 @@ public class BuildsConfig {
     public void saveConfig() {
         try {
             config.save(configFile);
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException exception) {
+            plugin.getLogger().severe("Не удалось сохранить builds_config.yml: " + exception.getMessage());
         }
     }
 
@@ -51,186 +61,230 @@ public class BuildsConfig {
     }
 
     public String getNameBuild(String buildName) {
-        return config.getString(buildName + ".name");
+        return getBuildName(buildName);
     }
+
     public Integer getInt(String path) {
         return config.getInt(path);
     }
 
     public Map<Material, Integer> getDemandBuild(String buildName) {
-        Map<Material, Integer> resources = new HashMap<>();
+        Map<Material, Integer> resources = new LinkedHashMap<>();
+
         for (String entry : config.getStringList(buildName + ".resources")) {
-            String[] parts = entry.split(" ");
+            if (entry == null || entry.isBlank()) {
+                continue;
+            }
+
+            String[] parts = entry.trim().split("\\s+");
+
             if (parts.length != 2) {
                 plugin.getLogger().warning("Неверный формат ресурса: " + entry);
                 continue;
             }
-            String materialName = parts[0];
-            int materialNum;
+
+            Material material = Material.matchMaterial(parts[0]);
+
+            if (material == null || material.isAir()) {
+                plugin.getLogger().warning("Неизвестный или недопустимый материал: " + parts[0]);
+                continue;
+            }
+
             try {
-                materialNum = Integer.parseInt(parts[1]);
-            } catch (NumberFormatException e) {
-                plugin.getLogger().warning("Некорректное число для " + entry);
-                continue;
-            }
-            Material material = Material.getMaterial(materialName.toUpperCase());
-            if (material == null) {
-                plugin.getLogger().warning("Неизвестный материал: " + materialName);
-                continue;
-            }
-            if (materialNum > 0 && !material.isAir()) {
-                resources.put(material, materialNum);
+                int amount = Integer.parseInt(parts[1]);
+
+                if (amount <= 0) {
+                    plugin.getLogger().warning("Количество должно быть больше 0: " + entry);
+                    continue;
+                }
+
+                resources.merge(material, amount, Integer::sum);
+            } catch (NumberFormatException exception) {
+                plugin.getLogger().warning("Некорректное количество: " + entry);
             }
         }
-        return resources;
-    }
 
-    public Map<Material, Location> getBlockBuild(String buildName) {
-        Map<Material, Location> resources = new HashMap<>();
-        for (String entry : config.getStringList(buildName + ".blocks")) {
-            String[] parts = entry.split(" ");
-            if (parts.length != 2) {
-                plugin.getLogger().warning("Неверный формат ресурса: " + entry);
-                continue;
-            }
-            String materialName = parts[0];
-            Location materialLoc = new Location(getWorldBuild(buildName),
-                    Integer.parseInt(parts[1]),Integer.parseInt(parts[2]),
-                    Integer.parseInt(parts[3]));
-
-
-
-            Material material = Material.getMaterial(materialName.toUpperCase());
-            if (material == null) {
-                plugin.getLogger().warning("Неизвестный материал: " + materialName);
-                continue;
-            }
-
-            resources.put(material, materialLoc);
-
-        }
         return resources;
     }
 
     public World getWorldBuild(String buildName) {
-        return Bukkit.getWorld(config.getString(buildName + ".world"));
+        String worldName = config.getString(buildName + ".world");
+        return worldName == null ? null : Bukkit.getWorld(worldName);
     }
 
-    public void createBuildToConfig(String buildName, BlockData[][][] buildBlocks, World world) {
-        config.set(buildName+".name","Untitel");
-        config.set(buildName+".world",world.getName());
-        config.set(buildName+".material","CRAFTER");
-        config.set(buildName+".menu_name","menu");
-        List<String> lore = new ArrayList<>();
-        lore.add("Крутое здание");
+    public boolean createBuildToConfig(
+            String buildName,
+            BlockData[][][] buildBlocks,
+            World world
+    ) {
+        if (buildName == null || !buildName.matches("[a-zA-Z0-9_-]{3,40}")
+                || world == null || !isValidMatrix(buildBlocks)) {
+            return false;
+        }
 
-        config.set(buildName+".lore",lore);
+        if (config.contains(buildName)) {
+            plugin.getLogger().warning("Шаблон " + buildName + " уже существует.");
+            return false;
+        }
 
-        List<String> builds = config.getStringList("builds_list");
-        builds.add(buildName);
+        config.set(buildName + ".name", buildName);
+        config.set(buildName + ".world", world.getName());
+        config.set(buildName + ".material", "CRAFTER");
+        config.set(buildName + ".menu_name", "menu");
+        config.set(buildName + ".lore", List.of("Крутое здание"));
 
-        config.set("builds_list",builds);
+        List<String> builds = new ArrayList<>(config.getStringList("builds_list"));
 
-        saveMatrix(buildName+".blocks",buildBlocks);
+        if (!builds.contains(buildName)) {
+            builds.add(buildName);
+        }
+
+        config.set("builds_list", builds);
+
+        if (!saveMatrix(buildName + ".blocks", buildBlocks)) {
+            return false;
+        }
 
         saveConfig();
+        return true;
     }
 
     public List<String> getBuilds() {
-        return config.getStringList("builds_list");
+        return new ArrayList<>(config.getStringList("builds_list"));
     }
 
     public String getMenuName(String buildName) {
-        return config.getString(buildName+".menu_name");
+        return config.getString(buildName + ".menu_name");
     }
 
     public List<String> getBuildLore(String buildName) {
-        return config.getStringList(buildName+".lore");
-    }
-    public String getBuildName(String buildName) {
-        return config.getString(buildName+".name");
-    }
-    public Material getBuildMaterial(String buildName) {
-        return Material.getMaterial(config.getString(buildName+".material"));
+        return new ArrayList<>(config.getStringList(buildName + ".lore"));
     }
 
-    // Сохранение матрицы BlockData в конфиг
-    public void saveMatrix(String path, BlockData[][][] matrix) {
-        // Создаем вложенную структуру List
+    public String getBuildName(String buildName) {
+        return config.getString(buildName + ".name", buildName);
+    }
+
+    public Material getBuildMaterial(String buildName) {
+        String materialName = config.getString(buildName + ".material", "BARRIER");
+        Material material = Material.matchMaterial(materialName);
+        return material == null ? Material.BARRIER : material;
+    }
+
+    public boolean saveMatrix(String path, BlockData[][][] matrix) {
+        if (!isValidMatrix(matrix)) {
+            plugin.getLogger().warning("Не удалось сохранить повреждённую матрицу: " + path);
+            return false;
+        }
+
         List<List<List<String>>> serialized = new ArrayList<>();
 
-        for (int y = 0; y < matrix.length; y++) {
-            List<List<String>> yLevel = new ArrayList<>();
+        for (BlockData[][] layer : matrix) {
+            List<List<String>> serializedLayer = new ArrayList<>();
 
-            for (int x = 0; x < matrix[y].length; x++) {
-                List<String> xLine = new ArrayList<>();
+            for (BlockData[] row : layer) {
+                List<String> serializedRow = new ArrayList<>();
 
-                for (int z = 0; z < matrix[y][x].length; z++) {
-                    BlockData blockData = matrix[y][x][z];
-                    // Сохраняем BlockData в строковом формате
-                    if (blockData != null) {
-                        xLine.add(blockData.getAsString());
-                    } else {
-                        xLine.add(Material.AIR.createBlockData().getAsString());
-                    }
+                for (BlockData blockData : row) {
+                    serializedRow.add(blockData.getAsString());
                 }
 
-                yLevel.add(xLine);
+                serializedLayer.add(serializedRow);
             }
 
-            serialized.add(yLevel);
+            serialized.add(serializedLayer);
         }
 
         config.set(path, serialized);
-        plugin.saveConfig();
+        return true;
     }
 
-    // Загрузка матрицы BlockData из конфига
     public BlockData[][][] loadMatrix(String path) {
-        if (!config.contains(path)) {
+        List<?> rawMatrix = config.getList(path);
+
+        if (rawMatrix == null || rawMatrix.isEmpty()) {
             return null;
         }
 
-        // Получаем вложенную структуру
-        List<?> serialized = config.getList(path);
-        if (serialized == null) return null;
+        if (!(rawMatrix.get(0) instanceof List<?> firstLayer)
+                || firstLayer.isEmpty()
+                || !(firstLayer.get(0) instanceof List<?> firstRow)
+                || firstRow.isEmpty()) {
+            plugin.getLogger().warning("Неверная структура матрицы: " + path);
+            return null;
+        }
 
-        // Проверка на пустую структуру
-        if (serialized.isEmpty()) return null;
-
-        // Определяем размеры
-        int sizeY = serialized.size();
-        int sizeX = ((List<?>) serialized.get(0)).size();
-        int sizeZ = ((List<?>) ((List<?>) serialized.get(0)).get(0)).size();
+        int sizeY = rawMatrix.size();
+        int sizeX = firstLayer.size();
+        int sizeZ = firstRow.size();
 
         BlockData[][][] matrix = new BlockData[sizeY][sizeX][sizeZ];
 
-        // Восстанавливаем матрицу
         for (int y = 0; y < sizeY; y++) {
-            List<?> yLevel = (List<?>) serialized.get(y);
+            Object rawLayer = rawMatrix.get(y);
 
-            if (yLevel.isEmpty()) continue;
+            if (!(rawLayer instanceof List<?> layer) || layer.size() != sizeX) {
+                plugin.getLogger().warning("Неверный размер Y-слоя матрицы: " + path);
+                return null;
+            }
 
             for (int x = 0; x < sizeX; x++) {
-                List<?> xLine = (List<?>) yLevel.get(x);
+                Object rawRow = layer.get(x);
 
-                if (xLine.isEmpty()) continue;
+                if (!(rawRow instanceof List<?> row) || row.size() != sizeZ) {
+                    plugin.getLogger().warning("Неверный размер X-строки матрицы: " + path);
+                    return null;
+                }
 
                 for (int z = 0; z < sizeZ; z++) {
-                    String blockDataString = (String) xLine.get(z);
+                    Object rawBlockData = row.get(z);
 
-                    // Парсим BlockData из строки
+                    if (!(rawBlockData instanceof String blockDataString)) {
+                        plugin.getLogger().warning("BlockData должен быть строкой: " + path);
+                        return null;
+                    }
+
                     try {
                         matrix[y][x][z] = Bukkit.createBlockData(blockDataString);
-                    } catch (IllegalArgumentException e) {
-                        // Если не удалось распарсить, ставим AIR
-                        plugin.getLogger().warning("Failed to parse BlockData: " + blockDataString);
-                        matrix[y][x][z] = Material.AIR.createBlockData();
+                    } catch (IllegalArgumentException exception) {
+                        plugin.getLogger().warning("Не удалось прочитать BlockData: " + blockDataString);
+                        return null;
                     }
                 }
             }
         }
 
         return matrix;
+    }
+
+    private boolean isValidMatrix(BlockData[][][] matrix) {
+        if (matrix == null || matrix.length == 0 || matrix[0] == null
+                || matrix[0].length == 0 || matrix[0][0] == null
+                || matrix[0][0].length == 0) {
+            return false;
+        }
+
+        int sizeX = matrix[0].length;
+        int sizeZ = matrix[0][0].length;
+
+        for (BlockData[][] layer : matrix) {
+            if (layer == null || layer.length != sizeX) {
+                return false;
+            }
+
+            for (BlockData[] row : layer) {
+                if (row == null || row.length != sizeZ) {
+                    return false;
+                }
+
+                for (BlockData blockData : row) {
+                    if (blockData == null) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
     }
 }

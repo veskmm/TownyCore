@@ -1,106 +1,125 @@
 package me.vesk.townyCore;
 
-import com.palmergames.bukkit.towny.Towny;
 import com.palmergames.bukkit.towny.TownyAPI;
-import com.palmergames.bukkit.towny.event.*;
-
-import com.palmergames.bukkit.towny.object.Coord;
+import com.palmergames.bukkit.towny.event.DeleteTownEvent;
+import com.palmergames.bukkit.towny.event.NewTownEvent;
+import com.palmergames.bukkit.towny.event.PreNewTownEvent;
+import com.palmergames.bukkit.towny.event.TownClaimEvent;
 import com.palmergames.bukkit.towny.object.WorldCoord;
-import com.palmergames.bukkit.towny.tasks.TownClaim;
-import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.block.data.BlockData;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.awt.*;
-import java.nio.Buffer;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-
-import net.kyori.adventure.text.Component;
+import java.util.UUID;
 
 public class TownyListener implements Listener {
-    final JavaPlugin plugin;
-    final Manager manager;
-    final ConfigManager configManager;
-    final TownsConfig townsConfig;
 
-    private TownyAPI api;
+    private final JavaPlugin plugin;
+    private final Manager manager;
+    private final ConfigManager configManager;
+    private final TownsConfig townsConfig;
+    private final TownyAPI api;
+    private final Map<String, PendingTownCreation> pendingTownCreations = new HashMap<>();
 
-    public TownyListener(JavaPlugin plugin, Manager manager, ConfigManager configManager, TownsConfig townsConfig) {
+    public TownyListener(
+            JavaPlugin plugin,
+            Manager manager,
+            ConfigManager configManager,
+            TownsConfig townsConfig
+    ) {
         this.plugin = plugin;
         this.manager = manager;
         this.configManager = configManager;
         this.townsConfig = townsConfig;
-
         this.api = TownyAPI.getInstance();
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onTownPreClaim(PreNewTownEvent event) {
+        Player player = event.getPlayer();
+        List<List<Component>> demand = manager.checkDemand(player, false, 0, false, "");
+
+        if (!demand.get(0).isEmpty()) {
+            event.setCancelMessage("");
+            event.setCancelled(true);
+            manager.sendMissingDemandMessage(player, demand);
+            return;
+        }
+
+        String townKey = event.getTownName().toLowerCase(Locale.ROOT);
+
+        pendingTownCreations.put(townKey, new PendingTownCreation(
+                player.getUniqueId(),
+                manager.getDemandResources(false, 0, false, ""),
+                event.getTownWorldCoord()
+        ));
+
+        Bukkit.getScheduler().runTaskLater(
+                plugin,
+                () -> pendingTownCreations.remove(townKey),
+                2L
+        );
     }
 
     @EventHandler
     public void townCreate(NewTownEvent event) {
-        manager.showTownBorder(event.getTown().getName());
-    }
+        String townName = event.getTown().getName();
+        PendingTownCreation pending = pendingTownCreations.remove(townName.toLowerCase(Locale.ROOT));
 
-    @EventHandler
-    public void onTownPreClaim(PreNewTownEvent event) {
-        List<List<Component>> firthResult = manager.checkDemand(event.getPlayer(),false,0,false,"");
-
-        List<Component> missingComponents = firthResult.get(0);
-        List<Component> missingAmounts = firthResult.get(1);
-
-        event.getPlayer().sendMessage("");
-        if (missingComponents.isEmpty()) {
-            manager.writingOffDemand(event.getPlayer(),false,0,false,"");
-            String filledMessage = configManager.getCreateTown().replace("{newTown}",event.getTownName());
-            String coloredMessage = ChatColor.translateAlternateColorCodes('&', filledMessage);
-            event.getPlayer().sendMessage(coloredMessage);
-
-            townsConfig.setLine(event.getTownName()+".level_claim",0);
-            townsConfig.setLine(event.getTownName()+".mayor",event.getPlayer().getName());
-            townsConfig.setLine(event.getTownName()+".position_x",event.getTownWorldCoord().getX());
-            townsConfig.setLine(event.getTownName()+".position_z",event.getTownWorldCoord().getZ());
-            townsConfig.setLine(event.getTownName()+".oldBorder", new HashMap<Location, BlockData>());
+        if (pending == null) {
+            townsConfig.ensureTown(townName);
+            manager.showTownBorder(townName);
+            return;
         }
-        else {
-            event.setCancelMessage("");
-            event.setCancelled(true);
-            Component message = Component.empty();
 
-            int i = 0;
-            for (Component mC : missingComponents) {
-                message = message.append(Component.newline())
-                        .append(Component.text("- "))
-                        .append(mC)
-                        .append(Component.text(" "))
-                        .append(missingAmounts.get(i).color(NamedTextColor.GOLD))
-                        .append(Component.text(" штук").color(NamedTextColor.GOLD));
-                i++;
-            }
+        Player player = Bukkit.getPlayer(pending.playerId());
+        String mayorName = player == null ? "unknown" : player.getName();
 
-            String rawMessage = configManager.getNotEnoughResources();
-            String filledMessage = rawMessage.replace("{missingResources}", "");
+        townsConfig.initializeTown(townName, mayorName, pending.homeCoord());
 
-            String coloredMessage = ChatColor.translateAlternateColorCodes('&', filledMessage);
-            event.getPlayer().sendMessage(coloredMessage);
-            event.getPlayer().sendMessage(message);
+        if (player == null || !manager.withdrawMaterials(player, pending.cost())) {
+            plugin.getLogger().severe("Город " + townName
+                    + " создан, но ресурсы не удалось списать.");
+        } else {
+            player.sendMessage(ChatColor.translateAlternateColorCodes(
+                    '&',
+                    configManager.getCreateTown().replace("{newTown}", townName)
+            ));
         }
-        event.getPlayer().sendMessage("");
-    }
 
+        manager.showTownBorder(townName);
+    }
 
     @EventHandler
     public void deletedTown(DeleteTownEvent event) {
-        townsConfig.setLine(event.getTownName(), null);
+        String townName = event.getTownName();
+        manager.clearBorder(townName);
+        townsConfig.removeTown(townName);
     }
 
     @EventHandler
     public void claimTown(TownClaimEvent event) {
         manager.showTownBorder(event.getTown().getName());
+    }
+
+    private record PendingTownCreation(
+            UUID playerId,
+            Map<Material, Integer> cost,
+            WorldCoord homeCoord
+    ) {
+        private PendingTownCreation {
+            cost = new LinkedHashMap<>(cost);
+        }
     }
 }
