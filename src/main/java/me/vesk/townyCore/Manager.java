@@ -419,7 +419,7 @@ public class Manager implements Listener {
             for (int y = 0; y < sizeY; y++) {
                 for (int x = 0; x < sizeX; x++) {
                     for (int z = 0; z < sizeZ; z++) {
-                        Block block = world.getBlockAt(startX + x, startY + y, startZ + z);
+                        Block block = world.getBlockAt(startX + x, startY + y - 1, startZ + z);
                         oldBlocks[y][x][z] = block.getBlockData().clone();
                         block.setBlockData(matrix[y][x][z].clone(), false);
                     }

@@ -6,6 +6,7 @@ import com.github.stefvanschie.inventoryframework.pane.StaticPane;
 import com.palmergames.bukkit.towny.TownyAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
@@ -140,31 +141,41 @@ public class BuildMenu implements Listener {
                     buildsConfig.getBuildName(buildId)
             ));
 
-            List<String> lore = new ArrayList<>();
+            List<Component> lore = new ArrayList<>();
 
             for (String line : buildsConfig.getBuildLore(buildId)) {
-                lore.add(ChatColor.translateAlternateColorCodes('&', line));
+                lore.add(Component.text(ChatColor.translateAlternateColorCodes('&', line)));
             }
 
-            lore.add(" ");
+            lore.add(Component.text(" "));
 
             boolean townAlreadyHasBuild = townName != null && !townName.isBlank()
                     && townsConfig.isHasBuild(townName, buildId);
 
             if (townAlreadyHasBuild) {
-                lore.add(ChatColor.translateAlternateColorCodes('&', "&rЛКМ - Открыть меню здания"));
+                lore.add(Component.text("ЛКМ — открыть меню здания")
+                        .color(NamedTextColor.GOLD)
+                        .append(Component.text("").color(NamedTextColor.GOLD))
+                );
+
             } else {
-                lore.add(ChatColor.translateAlternateColorCodes('&', "&rНеобходимые ресурсы:"));
+                lore.add(Component.text("Необходимые ресурсы:")
+                        .color(NamedTextColor.GOLD)
+                );
+                lore.add(Component.text(" "));
 
                 for (Map.Entry<Material, Integer> entry : buildsConfig.getDemandBuild(buildId).entrySet()) {
-                    lore.add(ChatColor.translateAlternateColorCodes(
-                            '&',
-                            "&r" + entry.getKey().name() + " " + entry.getValue() + " штук."
-                    ));
+                    Component amount = Component.text(entry.getValue());
+                    Component message = Component.empty()
+                            .append(Component.text("- ").color(NamedTextColor.GRAY))
+                            .append(Component.translatable(String.valueOf(entry.getKey().translationKey())).color(NamedTextColor.GRAY))
+                            .append(Component.text(" "))
+                            .append(amount.color(NamedTextColor.GOLD))
+                            .append(Component.text(" штук").color(NamedTextColor.GOLD));
+                    lore.add(message);
                 }
             }
-
-            meta.setLore(lore);
+            meta.lore(lore);
             buildItem.setItemMeta(meta);
 
             final String selectedBuildId = buildId;
