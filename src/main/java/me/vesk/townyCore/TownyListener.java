@@ -50,7 +50,7 @@ public class TownyListener implements Listener {
     public void playerDamage(EntityDamageEvent event) {
         if (event.getEntity() instanceof Player) {
             Player player = (Player) event.getEntity();
-            if (player.getWorld().getName() == "spawn") {
+            if (player.getWorld().getName().equals("spawn")) {
                 event.setCancelled(true);
             }
         }
@@ -59,6 +59,12 @@ public class TownyListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onTownPreClaim(PreNewTownEvent event) {
         Player player = event.getPlayer();
+        if (!event.getTownWorldCoord().getBukkitWorld().getName().equals("world")) {
+            event.setCancelled(true);
+            player.sendMessage(ChatColor.translateAlternateColorCodes(
+                    '&',"&6&lНельзя создать город в этом мире!"));
+            return;
+        }
         List<List<Component>> demand = manager.checkDemand(player, false, 0, false, "");
 
         if (!demand.get(0).isEmpty()) {
