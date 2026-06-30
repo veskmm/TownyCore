@@ -59,7 +59,8 @@ public class TownyListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onTownPreClaim(PreNewTownEvent event) {
         Player player = event.getPlayer();
-        if (!event.getTownWorldCoord().getBukkitWorld().getName().equals("world")) {
+        if (!event.getPlayer().getWorld().getName().equals("world")) {
+            event.setCancelMessage("");
             event.setCancelled(true);
             player.sendMessage(ChatColor.translateAlternateColorCodes(
                     '&',"&6&lНельзя создать город в этом мире!"));
