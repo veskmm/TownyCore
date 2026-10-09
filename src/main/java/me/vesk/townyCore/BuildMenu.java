@@ -280,6 +280,7 @@ public class BuildMenu implements Listener {
         String playerTownName = apiTowny.getTownName(player);
 
         if (playerTownName == null || playerTownName.isBlank()) {
+            isStartBuild = false;
             return PlacementValidation.failure(configManager.getNotTown());
         }
 
@@ -294,10 +295,12 @@ public class BuildMenu implements Listener {
         int sizeZ = matrix[0][0].length;
 
         if ((long) sizeX * sizeY * sizeZ > MAX_VALIDATION_VOLUME) {
+            isStartBuild = false;
             return PlacementValidation.failure("Схема слишком большая для проверки.");
         }
 
         if (startY < world.getMinHeight() || startY + sizeY > world.getMaxHeight()) {
+            isStartBuild = false;
             return PlacementValidation.failure("Здание выходит за допустимую высоту мира.");
         }
 
@@ -329,6 +332,7 @@ public class BuildMenu implements Listener {
         int supportY = startY - 1;
 
         if (supportY < world.getMinHeight()) {
+            isStartBuild = false;
             return PlacementValidation.failure("Под зданием нет места для фундамента.");
         }
 
@@ -405,6 +409,7 @@ public class BuildMenu implements Listener {
     }
 
     private void showValidationProblems(PlacementValidation validation) {
+        isStartBuild = false;
         if (validation.errorMessage() != null) {
             player.sendMessage(ChatColor.RED + validation.errorMessage());
             return;
@@ -467,7 +472,7 @@ public class BuildMenu implements Listener {
 
             @Override
             public void run() {
-                if (!viewer.isOnline() || shownTimes >= 12) {
+                if (!viewer.isOnline() || shownTimes >= 40) {
                     cancel();
                     return;
                 }
